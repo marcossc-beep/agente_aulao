@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Psicólogo IA</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        #header { display: flex; justify-content: space-between; align-items: center; }
+        #chat-box { 
+            height: 400px; 
+            border: 1px solid #ccc; 
+            background: white; 
+            overflow-y: scroll; 
+            padding: 20px; 
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message { padding: 10px 15px; border-radius: 15px; max-width: 70%; line-height: 1.4; }
+        .user-msg { align-self: flex-end; background-color: #007bff; color: white; }
+        .bot-msg { align-self: flex-start; background-color: #e9ecef; color: #333; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 4px; }
+        button.logout { background-color: #dc3545; font-size: 0.8em; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>Psicólogo IA (TCC)</h1>
+        <div>
+            <span id="welcomeUser"></span>
+            <button class="logout" onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <div id="chat-box">
+        <div class="message bot-msg">Olá. Sou seu assistente psicológico. Como você está se sentindo hoje?</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="promptInput" placeholder="Digite aqui..." onkeypress="handleEnter(event)">
+        <button onclick="enviarMensagem()">Enviar</button>
+    </div>
+
+<script>
+    // 1. VERIFICAR LOGIN AO ABRIR A PÁGINA
+    const usuarioLogado = localStorage.getItem('usuarioLogado');
+    if (!usuarioLogado) {
+        window.location.href = 'login_cadastro.html';
+    } else {
+        document.getElementById('welcomeUser').innerText = `Olá, ${usuarioLogado} | `;
+    }
+
+    function logout() {
+        localStorage.removeItem('usuarioLogado');
+        window.location.href = 'login_cadastro.html';
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') enviarMensagem();
+    }
+
+    function appendMessage(text, sender) {
+        const chatBox = document.getElementById('chat-box');
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+        msgDiv.classList.add(sender === 'user' ? 'user-msg' : 'bot-msg');
+        msgDiv.innerText = text; // Usa innerText para segurança contra XSS
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight; // Rola para baixo
+    }
+
+    async function enviarMensagem() {
+        const input = document.getElementById('promptInput');
+        const prompt = input.value;
+        
+        if (!prompt) return;
+
+        // Adiciona mensagem do usuário na tela imediatamente
+        appendMessage(prompt, 'user');
+        input.value = ''; // Limpa o campo
+        
+        // Coloca um "digitando..." (opcional, visual)
+        const loadingId = 'loading-' + Date.now();
+        const chatBox = document.getElementById('chat-box');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = loadingId;
+        loadingDiv.classList.add('message', 'bot-msg');
+        loadingDiv.innerText = '...';
+        chatBox.appendChild(loadingDiv);
+
+        try {
+            const response = await fetch('http://localhost:3000/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    prompt: prompt,
+                    username: usuarioLogado // Enviamos o usuário para recuperar o histórico
+                })
+            });
+
+            const result = await response.json();
+            
+            // Remove o loading
+            document.getElementById(loadingId).remove();
+
+            if (result.error) {
+                appendMessage("Erro: " + result.error, 'bot-msg');
+            } else {
+                appendMessage(result.response, 'bot-msg');
+            }
+
+        } catch (error) {
+            document.getElementById(loadingId).remove();
+            appendMessage("Erro de conexão.", 'bot-msg');
+        }
+    }
+</script>
+</body>
+</html>
+
+
+
+<!-- FACIL -->
+<!-- <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Gemini via Fastify</title>
+</head>
+<body>
+    <h1>Teste de Conexão (Backend Fastify)</h1>
+    <input type="text" id="promptInput" placeholder="Digite seu prompt aqui" style="width: 300px;">
+    <button onclick="fazerPiada()">Pedir uma Piada</button>
+    <p id="resultado" style="white-space: pre-wrap; margin-top: 20px; font-family: sans-serif;"></p>
+
+<script>
+async function fazerPiada() {
+    const prompt = document.getElementById('promptInput').value;
+    if (!prompt) {
+        alert('Por favor, digite um prompt.');
+        return;
+    }
+
+    const output = document.getElementById('resultado');
+  output.innerText = "Conectando ao servidor local...";
+
+  // AGORA APONTAMOS PARA O NOSSO BACKEND LOCAL
+  const url = 'http://localhost:3000/api/generate';
+  const dataEnvio = {
+      prompt
+  };
+
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json' 
+    },
+    body: JSON.stringify(dataEnvio) 
+  };
+
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    const textoResposta = result.response;
+    console.log(textoResposta);
+    output.innerText = textoResposta;
+ 
+}
+</script>
+</body>
+</html> -->
